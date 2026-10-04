@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Law Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f2f4f6; --panel: #ffffff; --ink: #1c2530; --muted: #66727f;
+    --line: #dde2e7; --accent: #1d4e5f; --accent-ink: #ffffff; --user: #e3edf1;
+    --warn-bg: #fff6df; --warn-ink: #6b5200;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12171c; --panel: #1a2128; --ink: #e6ebef; --muted: #97a3ae;
+      --line: #2b353e; --accent: #5fb0c7; --accent-ink: #0d1418; --user: #22313a;
+      --warn-bg: #2b2411; --warn-ink: #e8d28a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: Inter, system-ui, sans-serif; background: var(--bg); color: var(--ink); display: flex; justify-content: center; }
+  .app { width: 100%; max-width: 760px; height: 100%; display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  header { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; overflow: hidden; }
+  .logo img { width: 100%; height: 100%; object-fit: cover; }
+  h1 { font-family: "Source Serif 4", Georgia, serif; font-size: 1.3rem; margin: 0; }
+  header small { color: var(--muted); display: block; margin-top: 2px; }
+  .link-btn { background: none; border: 1px solid var(--line); color: var(--muted); padding: 6px 10px; border-radius: 6px; cursor: pointer; font: inherit; font-size: .85rem; }
+  .notice { background: var(--warn-bg); color: var(--warn-ink); font-size: .82rem; padding: 8px 20px; }
+  #settings { display: none; padding: 12px 20px; border-bottom: 1px solid var(--line); gap: 8px; }
+  #settings.open { display: flex; }
+  #settings input { flex: 1; }
+  #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .msg { max-width: 86%; padding: 11px 14px; border-radius: 10px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.user { align-self: flex-end; background: var(--user); }
+  .msg.bot { align-self: flex-start; border: 1px solid var(--line); }
+  .msg.err { align-self: flex-start; border: 1px solid #c0392b; color: #c0392b; }
+  details { margin-top: 10px; font-size: .85rem; color: var(--muted); white-space: normal; }
+  summary { cursor: pointer; }
+  .src { margin: 8px 0 0; padding-left: 10px; border-left: 3px solid var(--line); }
+  .empty { margin: auto; text-align: center; color: var(--muted); max-width: 420px; }
+  .empty h2 { font-family: "Source Serif 4", Georgia, serif; color: var(--ink); font-size: 1.15rem; margin: 0 0 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+  .chip { border: 1px solid var(--line); background: none; color: var(--ink); padding: 7px 12px; border-radius: 16px; cursor: pointer; font: inherit; font-size: .85rem; }
+  .chip:hover, .link-btn:hover { border-color: var(--accent); }
+  .dots span { display: inline-block; width: 6px; height: 6px; margin-right: 4px; border-radius: 50%; background: var(--muted); animation: b 1s infinite; }
+  .dots span:nth-child(2) { animation-delay: .15s; } .dots span:nth-child(3) { animation-delay: .3s; }
+  @keyframes b { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .dots span { animation: none; } }
+  #attach { display: inline-flex; align-items: center; gap: 6px; }
+  .filetag { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 20px 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: .85rem; color: var(--muted); }
+  .filetag[hidden] { display: none; }
+  .filetag button { background: none; border: 0; color: var(--muted); font-size: 1.2rem; cursor: pointer; line-height: 1; }
+  form { display: flex; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--line); }
+  input { font: inherit; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  form input { flex: 1; }
+  input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .send { background: var(--accent); color: var(--accent-ink); border: 0; padding: 0 18px; border-radius: 8px; font: inherit; font-weight: 500; cursor: pointer; }
+  .send:disabled { opacity: .5; cursor: default; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <!-- To use your own logo, replace the <svg> below with: <img src="logo.png" alt="Logo"> -->
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 5v22M10 27h12M7 9h18"/>
+          <circle cx="16" cy="5" r="1.2" fill="currentColor"/>
+          <path d="M7 9l-4 9M7 9l4 9M3 18a4 3 0 0 0 8 0z"/>
+          <path d="M25 9l-4 9M25 9l4 9M21 18a4 3 0 0 0 8 0z"/>
+        </svg>
+      </div>
+      <div><h1>Law Assistant</h1><small>Answers drawn from your uploaded legal documents</small></div>
+    </div>
+    <div style="display:flex;gap:8px"><button class="link-btn" id="newChat" type="button">New chat</button><button class="link-btn" id="toggleSettings" type="button">Backend URL</button></div>
+  </header>
+  <div class="notice">General information only, not legal advice. Consult a qualified lawyer for your situation.</div>
+  <div id="settings">
+    <input id="backendInput" placeholder="https://xxxx.ngrok-free.app" aria-label="Backend URL">
+    <button class="link-btn" id="saveUrl" type="button">Save</button>
+  </div>
+  <div id="chat">
+    <div class="empty" id="empty">
+      <h2>Ask a legal question</h2>
+      <div>Set your backend URL first, then ask about anything in your documents.</div>
+      <div class="chips">
+        <button class="chip" type="button">What are the grounds for divorce?</button>
+        <button class="chip" type="button">What is the punishment for theft?</button>
+        <button class="chip" type="button">What is a bailable offence?</button>
+      </div>
+    </div>
+  </div>
+  <div class="filetag" id="fileTag" hidden><span id="fileName"></span><button type="button" id="clearFile" aria-label="Remove file">&times;</button></div>
+  <form id="form">
+    <input type="file" id="file" hidden accept=".pdf,.txt,.docx,.png,.jpg,.jpeg,.webp">
+    <button type="button" class="link-btn" id="attach" aria-label="Attach a file"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 2v12M2 8h12"/></svg>Attach</button>
+    <input id="q" placeholder="Type your question" autocomplete="off" aria-label="Your question">
+    <button class="send" id="send" type="submit">Send</button>
+  </form>
+</div>
+
+<script>
+  const chat = document.getElementById("chat");
+  const form = document.getElementById("form");
+  const q = document.getElementById("q");
+  const sendBtn = document.getElementById("send");
+  const settings = document.getElementById("settings");
+  const backendInput = document.getElementById("backendInput");
+
+  // Optional: hardcode your URL here instead of using the settings box
+  let BACKEND = "";
+  try { BACKEND = localStorage.getItem("backend_url") || BACKEND; } catch (e) {}
+  backendInput.value = BACKEND;
+  if (!BACKEND) settings.classList.add("open");
+
+  document.getElementById("toggleSettings").onclick = () => settings.classList.toggle("open");
+  document.getElementById("saveUrl").onclick = () => {
+    BACKEND = backendInput.value.trim().replace(/\/+$/, "");
+    try { localStorage.setItem("backend_url", BACKEND); } catch (e) {}
+    settings.classList.remove("open");
+  };
+  document.querySelectorAll(".chip").forEach(c => c.onclick = () => { q.value = c.textContent; form.requestSubmit(); });
+
+  // Conversation memory: sent to the backend so follow-up questions make sense
+  const history = [];
+  document.getElementById("newChat").onclick = () => location.reload();
+
+  const fileInput = document.getElementById("file");
+  const fileTag = document.getElementById("fileTag");
+  function clearFile() { fileInput.value = ""; fileTag.hidden = true; }
+  document.getElementById("attach").onclick = () => fileInput.click();
+  document.getElementById("clearFile").onclick = clearFile;
+  fileInput.onchange = () => {
+    const f = fileInput.files[0];
+    if (!f) return clearFile();
+    if (f.size > 10 * 1024 * 1024) { alert("File is larger than 10 MB."); return clearFile(); }
+    document.getElementById("fileName").textContent = f.name;
+    fileTag.hidden = false;
+  };
+
+  function add(text, cls) {
+    const empty = document.getElementById("empty");
+    if (empty) empty.remove();
+    const d = document.createElement("div");
+    d.className = "msg " + cls;
+    d.textContent = text;
+    chat.appendChild(d);
+    chat.scrollTop = chat.scrollHeight;
+    return d;
+  }
+
+  function addSources(el, sources) {
+    if (!sources || !sources.length) return;
+    const det = document.createElement("details");
+    const sum = document.createElement("summary");
+    sum.textContent = "Sources (" + sources.length + ")";
+    det.appendChild(sum);
+    sources.forEach(s => {
+      const p = document.createElement("div");
+      p.className = "src";
+      const page = typeof s.page === "number" ? "Page " + (s.page + 1) + ": " : "";
+      p.textContent = page + s.snippet + "...";
+      det.appendChild(p);
+    });
+    el.appendChild(det);
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const question = q.value.trim();
+    if (!question) return;
+    if (!BACKEND) { settings.classList.add("open"); backendInput.focus(); return; }
+
+    const file = fileInput.files[0];
+    add(file ? question + "\n[Attached: " + file.name + "]" : question, "user");
+    q.value = "";
+    sendBtn.disabled = true;
+    const wait = add("", "bot");
+    wait.innerHTML = '<span class="dots"><span></span><span></span><span></span></span>';
+
+    try {
+      let res;
+      if (file) {
+        const fd = new FormData();
+        fd.append("question", question);
+        fd.append("history", JSON.stringify(history.slice(-6)));
+        fd.append("file", file);
+        res = await fetch(BACKEND + "/ask_file", {
+          method: "POST",
+          headers: { "ngrok-skip-browser-warning": "true" },
+          body: fd
+        });
+        clearFile();
+      } else {
+        res = await fetch(BACKEND + "/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+          body: JSON.stringify({ question, history: history.slice(-6) })
+        });
+      }
+      if (!res.ok) {
+        let detail = "";
+        try { detail = (await res.json()).detail || ""; } catch (e) {}
+        throw new Error("Server returned " + res.status + (detail ? ": " + detail : ""));
+      }
+      const data = await res.json();
+      wait.textContent = data.answer;
+      addSources(wait, data.sources);
+      history.push({ role: "user", content: question });
+      history.push({ role: "assistant", content: data.answer });
+    } catch (err) {
+      wait.className = "msg err";
+      wait.textContent = err.message.startsWith("Server returned")
+        ? "Error: " + err.message
+        : "Could not reach the backend (" + err.message + "). Check that the Colab cell is running and the URL is current.";
+    }
+    sendBtn.disabled = false;
+    chat.scrollTop = chat.scrollHeight;
+    q.focus();
+  });
+</script>
+</body>
+</html>
